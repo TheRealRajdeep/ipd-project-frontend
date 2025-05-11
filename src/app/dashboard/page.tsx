@@ -1,49 +1,66 @@
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
 
-export default function DashboardPage() {
-  const { user, isAuthenticated, logout, loading } = useAuth();
+// Import the dashboards
+import FarmerDashboard from '@/components/dashboard/FarmerDashboard';
+import DistributorDashboard from '@/components/dashboard/DistributorDashboard';
+
+export default function DashboardRouter() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
+    // Check if user is authenticated
+    const currentUser = getCurrentUser();
+    console.log("Current user:", currentUser); // Debug user data
+    
+    if (!currentUser) {
+      router.push('/login');
+      return;
     }
-  }, [isAuthenticated, loading, router]);
 
-  if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    setUser(currentUser);
+    setIsLoading(false);
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
   }
 
-  if (!isAuthenticated) {
-    return null; // Will redirect to login
-  }
+  // Route to the appropriate dashboard based on user type
+  const userType = user?.profile?.user_type?.toUpperCase();
+  console.log("User type for dashboard:", userType); // Debug user type
 
-  return (
-    <div className="container py-10">
-      <h1 className="mb-6 text-3xl font-bold">Dashboard</h1>
-      
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Welcome, {user?.first_name || user?.username}</CardTitle>
-          <CardDescription>
-            You are logged in as a {user?.profile?.user_type || "User"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>This is your dashboard where you can manage your banana shipments and track ripeness.</p>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={() => logout()}>Logout</Button>
-        </CardFooter>
-      </Card>
-      
-      {/* Additional dashboard content will go here */}
-    </div>
-  );
+  if (userType === 'FARMER') {
+    return <FarmerDashboard user={user} />;
+  } else if (userType === 'DISTRIBUTOR') {
+    return <DistributorDashboard user={user} />;
+  } else {
+    // Generic dashboard for other user types or show error
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md w-full">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Unsupported User Type</h1>
+          <p className="text-gray-600 mb-6">
+            Your account type ({userType || 'Unknown'}) does not have a dashboard.
+            Please contact support for assistance.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 }

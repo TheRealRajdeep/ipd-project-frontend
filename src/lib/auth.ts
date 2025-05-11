@@ -19,27 +19,77 @@ export interface UserData {
 
 export const login = async (username: string, password: string): Promise<UserData> => {
   try {
-    // First, get the token
-    const tokenResponse = await axios.post(`${API_URL}/api-token-auth/`, { username, password });
-    const token = tokenResponse.data.token;
+    console.log('Attempting login to:', `${API_URL}/api/accounts/login/`);
     
-    // Set the token in headers for the user data request
-    axios.defaults.headers.common['Authorization'] = `Token ${token}`;
-    
-    // Get user details with the token
-    const userResponse = await axios.get(`${API_URL}/api/accounts/user/`);
-    
-    const userData = userResponse.data;
-    userData.auth_token = token;
-    
-    // Store user in localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(userData));
-      // Also store token in cookies for middleware
-      document.cookie = `auth_token=${token}; path=/; max-age=${60*60*24*7}`; // 7 days
+    // First approach - try with credentials mode for session-based auth
+    try {
+      const loginResponse = await axios.post(
+        `${API_URL}/api/accounts/login/`, 
+        { username, password },
+        { 
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          withCredentials: true
+        }
+      );
+      
+      console.log('Login response status:', loginResponse.status);
+      console.log('Login response data:', JSON.stringify(loginResponse.data, null, 2));
+      
+      const userData = loginResponse.data;
+      
+      // Extract token from response
+      const token = userData.auth_token || userData.token || userData.key;
+      
+      if (!token) {
+        console.error('No auth token received in login response');
+      } else {
+        setAuthHeader(token);
+      }
+      
+      // Store the user data
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userData));
+        document.cookie = `isAuthenticated=true; path=/; max-age=${60*60*24*7}`;
+        if (token) {
+          document.cookie = `auth_token=${token}; path=/; max-age=${60*60*24*7}`;
+        }
+      }
+      
+      return userData;
+    } catch (credentialsError) {
+      // If credentials mode fails, try without credentials as fallback
+      console.log('Login with credentials failed, trying without credentials mode');
+      
+      const loginResponse = await axios.post(
+        `${API_URL}/api/accounts/login/`, 
+        { username, password },
+        { 
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          }
+          // No withCredentials here
+        }
+      );
+      
+      const userData = loginResponse.data;
+      const token = userData.auth_token || userData.token || userData.key;
+      
+      if (token) {
+        setAuthHeader(token);
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+          document.cookie = `isAuthenticated=true; path=/; max-age=${60*60*24*7}`;
+          document.cookie = `auth_token=${token}; path=/; max-age=${60*60*24*7}`;
+        }
+      }
+      
+      return userData;
     }
-    
-    return userData;
   } catch (error) {
     console.error("Login failed:", error);
     throw error;
@@ -71,38 +121,42 @@ export const register = async (userData: {
 
 export const logout = async (): Promise<void> => {
   try {
-    const user = getCurrentUser();
-    if (user && user.auth_token) {
-      await axios.post(`${API_URL}/api/accounts/logout/`, {}, {
-        headers: { Authorization: `Token ${user.auth_token}` }
-      });
-    }
+    // Call logout endpoint to clear server-side session
+    await axios.post(`${API_URL}/api/accounts/logout/`, {}, {
+      withCredentials: true // Now properly configured on backend
+    });
   } catch (error) {
     console.error("Logout error:", error);
   } finally {
-    // Clear user from storage
+    // Clear client-side auth state
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user');
+      document.cookie = 'isAuthenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
       document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+      setAuthHeader(null);
     }
-    // Clear auth headers
-    delete axios.defaults.headers.common['Authorization'];
   }
 };
 
 export const getCurrentUser = (): UserData | null => {
   if (typeof window === 'undefined') return null;
   
+  // Check if we have user data stored
   const userStr = localStorage.getItem('user');
   if (!userStr) return null;
   
+  // Check if we have the authentication cookie
+  const cookies = document.cookie.split(';');
+  const isAuthenticated = cookies.some(cookie => cookie.trim().startsWith('isAuthenticated=true'));
+  
+  if (!isAuthenticated) {
+    // If cookie is missing, user session likely expired
+    localStorage.removeItem('user');
+    return null;
+  }
+  
   try {
-    const userData = JSON.parse(userStr);
-    // Set the auth header if we have a user
-    if (userData && userData.auth_token) {
-      setAuthHeader(userData.auth_token);
-    }
-    return userData;
+    return JSON.parse(userStr);
   } catch (error) {
     console.error("Error parsing user data:", error);
     return null;
