@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-
+import { getCurrentUser } from '@/lib/auth';
 interface ShipmentDetailsProps {
     id: string;
 }
@@ -23,12 +23,53 @@ export default function ShipmentDetails({ id }: ShipmentDetailsProps) {
         async function fetchShipmentDetails() {
             try {
                 const response = await createAPIRequest(`/api/shipments/${id}/`, 'GET');
-                setShipment(response?.data || null);
+                const shipmentData = response?.data || null;
+
+                // Check if this shipment is assigned to the current user (if they're a delivery person)
+                if (shipmentData) {
+                    // Get current user's delivery person ID if available
+                    const userDeliveryPersonId = await getUserDeliveryPersonId();
+
+                    // If user is a delivery person, verify this shipment is assigned to them
+                    if (userDeliveryPersonId &&
+                        shipmentData.delivery_person &&
+                        shipmentData.delivery_person.id !== userDeliveryPersonId) {
+                        setError("You are not authorized to view this shipment.");
+                        setShipment(null);
+                    } else {
+                        setShipment(shipmentData);
+                    }
+                } else {
+                    setShipment(null);
+                    setError("Shipment not found");
+                }
             } catch (err) {
                 console.error("Failed to fetch shipment details:", err);
                 setError("Failed to load shipment details. Please try again.");
             } finally {
                 setLoading(false);
+            }
+        }
+
+        // Helper function to get the user's delivery person ID
+        async function getUserDeliveryPersonId() {
+            try {
+                // Check if user is authenticated
+                const currentUser = getCurrentUser();
+                if (!currentUser) return null;
+
+                // Get all delivery persons and find current user
+                const profileResponse = await createAPIRequest('/api/shipments/delivery-persons/', 'GET');
+                const deliveryPersons = profileResponse?.data || [];
+
+                const userDeliveryPerson = deliveryPersons.find(
+                    (person: any) => (person.user.id === currentUser.id)
+                );
+
+                return userDeliveryPerson ? userDeliveryPerson.id : null;
+            } catch (err) {
+                console.error("Error checking delivery person status:", err);
+                return null;
             }
         }
 

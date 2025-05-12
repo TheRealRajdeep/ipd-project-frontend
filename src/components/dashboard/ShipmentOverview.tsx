@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { FaTruck, FaBoxOpen, FaClipboardCheck, FaBan } from 'react-icons/fa';
-
+import { createAPIRequest } from '@/lib/apiUtils';
+import { getCurrentUser } from '@/lib/auth';
 interface Shipment {
     id: number;
     origin: string;
@@ -14,6 +15,12 @@ interface Shipment {
     created_at: string;
     shipment_date?: string;
     estimated_arrival?: string;
+    delivery_person?: {
+        id: number;
+        user: {
+            id: number;
+        };
+    };
 }
 
 interface ShipmentOverviewProps {
@@ -28,17 +35,55 @@ export default function ShipmentOverview({
     viewAllLink = "/shipments"
 }: ShipmentOverviewProps) {
     const [displayCount, setDisplayCount] = useState(3);
+    const [currentUserDeliveryPersonId, setCurrentUserDeliveryPersonId] = useState<number | null>(null);
+
+    useEffect(() => {
+        async function checkDeliveryPerson() {
+            try {
+                const currentUser = getCurrentUser();
+                if (!currentUser) return;
+
+                const profileResponse = await createAPIRequest('/api/shipments/delivery-persons/', 'GET');
+                const deliveryPersons = profileResponse?.data || [];
+
+                const userDeliveryPerson = deliveryPersons.find(
+                    (person: any) => (person.user.id === currentUser.id)
+                );
+
+                if (userDeliveryPerson) {
+                    setCurrentUserDeliveryPersonId(userDeliveryPerson.id);
+                }
+            } catch (err) {
+                console.error("Error checking delivery person status:", err);
+            }
+        }
+
+        checkDeliveryPerson();
+    }, []);
+
+    const visibleShipments = useMemo(() => {
+        // If we're not sure if user is a delivery person yet, show all
+        if (currentUserDeliveryPersonId === null) {
+            return shipments;
+        }
+
+        // If user is a delivery person, only show their shipments
+        return shipments.filter(shipment => {
+            if (!shipment.delivery_person) return false;
+            return shipment.delivery_person.id === currentUserDeliveryPersonId;
+        });
+    }, [shipments, currentUserDeliveryPersonId]);
 
     const uniqueShipments = useMemo(() => {
         const seen = new Set();
-        return shipments.filter(shipment => {
+        return visibleShipments.filter(shipment => {
             if (seen.has(shipment.id)) {
                 return false;
             }
             seen.add(shipment.id);
             return true;
         });
-    }, [shipments]);
+    }, [visibleShipments]);
 
     const sortedShipments = useMemo(() =>
         [...uniqueShipments].sort((a, b) =>

@@ -118,7 +118,7 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
                 if (currentUserDeliveryPerson) {
                     console.log("User is a delivery person:", currentUserDeliveryPerson);
                     deliveryPersonId = currentUserDeliveryPerson.id;
-                    setIsDeliveryPerson(true); // Set that the user is a delivery person
+                    setIsDeliveryPerson(true);
                 } else {
                     console.log("User is not a delivery person yet");
                     setIsDeliveryPerson(false);
@@ -135,7 +135,7 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
             } else {
                 setError(null); // Clear any previous errors
 
-                // Fetch incoming shipments (not delivered)
+                // Fetch incoming shipments (not delivered) for this specific delivery person
                 try {
                     const incomingResponse = await createAPIRequest(
                         '/api/shipments/',
@@ -153,7 +153,7 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
                     setIncomingShipments(dummyIncomingShipments);
                 }
 
-                // Fetch inventory (delivered shipments)
+                // Fetch inventory (delivered shipments) for this specific delivery person
                 try {
                     const inventoryResponse = await createAPIRequest(
                         '/api/shipments/',
@@ -163,6 +163,7 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
                             status: 'DELIVERED'
                         }
                     );
+                    console.log("Inventory:", inventoryResponse?.data);
                     const uniqueInventory = filterUniqueShipments(inventoryResponse?.data || []);
                     setInventory(uniqueInventory);
                 } catch (err) {
