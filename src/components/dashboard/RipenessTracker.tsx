@@ -5,6 +5,8 @@ import { useState } from 'react';
 interface Shipment {
     id: number;
     predicted_ripeness?: string;
+    ripeness_status?: string;
+    dominant_ripeness?: string;
     quality_score?: number;
     shelf_life?: string;
     status: string;
@@ -20,15 +22,23 @@ export default function RipenessTracker({ shipments }: RipenessTrackerProps) {
     // Count shipments by ripeness level
     const ripenessData = {
         'Unripe': 0,
-        'Semi-ripe': 0,
+        'Freshripe': 0,
         'Ripe': 0,
         'Overripe': 0
     };
 
     safeShipments.forEach(shipment => {
-        if (shipment.predicted_ripeness) {
-            ripenessData[shipment.predicted_ripeness as keyof typeof ripenessData] =
-                (ripenessData[shipment.predicted_ripeness as keyof typeof ripenessData] || 0) + 1;
+        // Use dominant_ripeness first, fallback to ripeness_status
+        const ripeness = (shipment.dominant_ripeness || shipment.ripeness_status || '').toLowerCase();
+
+        if (ripeness === 'unripe') {
+            ripenessData['Unripe']++;
+        } else if (ripeness === 'freshripe') {
+            ripenessData['Freshripe']++;
+        } else if (ripeness === 'ripe') {
+            ripenessData['Ripe']++;
+        } else if (ripeness === 'overripe' || ripeness === 'rotten') {
+            ripenessData['Overripe']++;
         }
     });
 
@@ -52,16 +62,16 @@ export default function RipenessTracker({ shipments }: RipenessTrackerProps) {
 
             <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Incoming Shipments by Ripeness</h4>
-                <div className="space-y-2">
+                <div className="text-black space-y-2">
                     {Object.entries(ripenessData).map(([label, count]) => (
                         <div key={label} className="flex items-center">
                             <div className="w-24 text-xs font-medium">{label}</div>
                             <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
                                 <div
-                                    className={`h-4 ${label === 'Unripe' ? 'bg-green-600' :
-                                            label === 'Semi-ripe' ? 'bg-yellow-400' :
-                                                label === 'Ripe' ? 'bg-yellow-600' :
-                                                    label === 'Overripe' ? 'bg-amber-700' : 'bg-gray-800'
+                                    className={` h-4 ${label === 'Unripe' ? 'bg-green-600' :
+                                        label === 'Freshripe' ? 'bg-yellow-400' :
+                                            label === 'Ripe' ? 'bg-yellow-600' :
+                                                label === 'Overripe' ? 'bg-amber-700' : 'bg-gray-800'
                                         }`}
                                     style={{
                                         width: safeShipments.length ? `${(count / safeShipments.length) * 100}%` : '0%'
@@ -74,7 +84,7 @@ export default function RipenessTracker({ shipments }: RipenessTrackerProps) {
                 </div>
             </div>
 
-            <div className="mt-6">
+            <div className="text-red-400 mt-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Urgent Attention Required</h4>
                 {urgentShipments.length > 0 ? (
                     <div className="space-y-3">
@@ -85,7 +95,7 @@ export default function RipenessTracker({ shipments }: RipenessTrackerProps) {
                                     <span className="text-orange-700 text-sm">{shipment.shelf_life}</span>
                                 </div>
                                 <div className="text-sm text-gray-600 mt-1">
-                                    Ripeness: {shipment.predicted_ripeness || 'Unknown'}
+                                    Ripeness: {shipment.dominant_ripeness || shipment.ripeness_status || 'Unknown'}
                                 </div>
                             </div>
                         ))}

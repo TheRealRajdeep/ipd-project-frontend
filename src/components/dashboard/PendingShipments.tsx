@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-
+import { useMemo } from 'react';
 interface Shipment {
     id: number;
     origin?: string;
@@ -22,8 +22,19 @@ interface PendingShipmentsProps {
 export default function PendingShipments({ shipments }: PendingShipmentsProps) {
     const safeShipments = shipments || [];
 
+    const uniqueShipments = useMemo(() => {
+        const seen = new Set();
+        return safeShipments.filter(shipment => {
+            if (seen.has(shipment.id)) {
+                return false;
+            }
+            seen.add(shipment.id);
+            return true;
+        });
+    }, [safeShipments]);
+
     // Filter shipments that are pending or in transit
-    const pendingShipments = safeShipments.filter(
+    const pendingShipments = uniqueShipments.filter(
         s => s.status === 'PENDING' || s.status === 'IN_TRANSIT'
     );
 

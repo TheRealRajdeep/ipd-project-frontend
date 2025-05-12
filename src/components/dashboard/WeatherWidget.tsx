@@ -73,14 +73,14 @@ export default function WeatherWidget({ location }: WeatherWidgetProps) {
             <div className="flex items-center mb-6">
                 <span className="text-4xl mr-4">{getWeatherIcon(weather.condition)}</span>
                 <div>
-                    <div className="text-3xl font-bold">{weather.temperature}°C</div>
+                    <div className="text-black text-3xl font-bold">{weather.temperature}°C</div>
                     <div className="text-gray-600">{weather.condition}</div>
                 </div>
             </div>
 
             <div className="text-sm text-gray-600 mb-2">Humidity: {weather.humidity}%</div>
 
-            <div className="mt-4 border-t pt-4">
+            <div className="text-black mt-4 border-t pt-4">
                 <h4 className="font-medium mb-2">3-Day Forecast</h4>
                 <div className="flex justify-between">
                     {weather.forecast.map((day: any, index: number) => (

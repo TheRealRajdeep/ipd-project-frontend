@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 
 interface Shipment {
     id: number;
     predicted_ripeness?: string;
+    ripeness_status?: string;
+    dominant_ripeness?: string;
     quality_score?: number;
     shelf_life?: string;
     created_at: string;
@@ -17,13 +19,23 @@ interface InventoryWidgetProps {
 }
 
 export default function InventoryWidget({ inventory }: InventoryWidgetProps) {
-    const safeInventory = inventory || [];
+    const safeInventory = useMemo(() => {
+        const seen = new Set();
+        return (inventory || []).filter(item => {
+            if (seen.has(item.id)) {
+                return false;
+            }
+            seen.add(item.id);
+            return true;
+        });
+    }, [inventory]);
     const [sortBy, setSortBy] = useState('shelf_life');
 
     // Group by ripeness
     const byRipeness: { [key: string]: Shipment[] } = {};
     safeInventory.forEach(shipment => {
-        const ripeness = shipment.predicted_ripeness || 'Unknown';
+        // Use dominant_ripeness first, fallback to ripeness_status or predicted_ripeness
+        const ripeness = shipment.dominant_ripeness || shipment.ripeness_status || shipment.predicted_ripeness || 'Unknown';
         if (!byRipeness[ripeness]) {
             byRipeness[ripeness] = [];
         }
@@ -52,6 +64,12 @@ export default function InventoryWidget({ inventory }: InventoryWidgetProps) {
         }
     });
 
+    // Get counts for different ripeness categories for display
+    const unripeCount = (byRipeness['unripe'] || []).length;
+    const freshRipeCount = (byRipeness['freshripe'] || []).length;
+    const ripeCount = (byRipeness['ripe'] || []).length;
+    const overripeCount = (byRipeness['overripe'] || []).length + (byRipeness['rotten'] || []).length;
+
     return (
         <div className="bg-white rounded-lg shadow-md p-6 h-full hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-center mb-4">
@@ -59,41 +77,41 @@ export default function InventoryWidget({ inventory }: InventoryWidgetProps) {
                 <div className="flex space-x-2">
                     <button
                         onClick={() => setSortBy('shelf_life')}
-                        className={`px-3 py-1 text-xs rounded-full ${sortBy === 'shelf_life' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}`}
+                        className={`px-2 py-1 text-xs rounded ${sortBy === 'shelf_life' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
-                        Shelf Life
+                        Sort by Shelf Life
                     </button>
                     <button
                         onClick={() => setSortBy('quality')}
-                        className={`px-3 py-1 text-xs rounded-full ${sortBy === 'quality' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}`}
+                        className={`px-2 py-1 text-xs rounded ${sortBy === 'quality' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
-                        Quality
-                    </button>
-                    <button
-                        onClick={() => setSortBy('date')}
-                        className={`px-3 py-1 text-xs rounded-full ${sortBy === 'date' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}`}
-                    >
-                        Date
+                        Sort by Quality
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-6">
-                <div className="bg-gray-50 rounded-md p-3 text-center">
-                    <div className="text-2xl font-bold">{totalItems}</div>
+            <div className="grid grid-cols-4 gap-2 mb-4">
+                <div className="bg-blue-50 rounded-md p-3 text-center">
+                    <div className="text-2xl font-bold text-black">{totalItems}</div>
                     <div className="text-xs text-gray-500">Total Inventory</div>
                 </div>
                 <div className="bg-green-50 rounded-md p-3 text-center">
                     <div className="text-2xl font-bold text-green-600">
-                        {byRipeness['Ripe']?.length || 0}
+                        {ripeCount}
                     </div>
                     <div className="text-xs text-gray-500">Ripe</div>
                 </div>
                 <div className="bg-yellow-50 rounded-md p-3 text-center">
                     <div className="text-2xl font-bold text-yellow-600">
-                        {(byRipeness['Semi-ripe']?.length || 0) + (byRipeness['Unripe']?.length || 0)}
+                        {unripeCount + freshRipeCount}
                     </div>
                     <div className="text-xs text-gray-500">Unripe/Semi-ripe</div>
+                </div>
+                <div className="bg-red-50 rounded-md p-3 text-center">
+                    <div className="text-2xl font-bold text-red-600">
+                        {overripeCount}
+                    </div>
+                    <div className="text-xs text-gray-500">Overripe</div>
                 </div>
             </div>
 
@@ -109,7 +127,7 @@ export default function InventoryWidget({ inventory }: InventoryWidgetProps) {
                                 <th className="px-4 py-2">ID</th>
                                 <th className="px-4 py-2">Ripeness</th>
                                 <th className="px-4 py-2">Shelf Life</th>
-                                <th className="px-4 py-2">Quality</th>
+                                {/* <th className="px-4 py-2">Quality</th> */}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -123,17 +141,18 @@ export default function InventoryWidget({ inventory }: InventoryWidgetProps) {
                                             #{item.id}
                                         </Link>
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
-                                        <span className={`inline-block w-3 h-3 rounded-full mr-2 ${item.predicted_ripeness === 'Unripe' ? 'bg-yellow-400' :
-                                                item.predicted_ripeness === 'Semi-ripe' ? 'bg-green-300' :
-                                                    item.predicted_ripeness === 'Ripe' ? 'bg-green-500' : 'bg-red-400'
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">
+                                        <span className={`inline-block w-3 h-3 rounded-full mr-2 ${(item.dominant_ripeness || item.ripeness_status) === 'unripe' ? 'bg-green-500' :
+                                            (item.dominant_ripeness || item.ripeness_status) === 'freshripe' ? 'bg-yellow-400' :
+                                                (item.dominant_ripeness || item.ripeness_status) === 'ripe' ? 'bg-yellow-600' :
+                                                    (item.dominant_ripeness || item.ripeness_status) === 'overripe' ? 'bg-amber-700' : 'bg-gray-400'
                                             }`}></span>
-                                        {item.predicted_ripeness || 'Unknown'}
+                                        {item.dominant_ripeness || item.ripeness_status || item.predicted_ripeness || 'Unknown'}
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">
                                         {item.shelf_life || 'Unknown'}
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap">
+                                    {/* <td className="text-black px-4 py-3 whitespace-nowrap">
                                         {item.quality_score ? (
                                             <div className="flex items-center">
                                                 <div className="w-16 bg-gray-200 rounded-full h-2.5 mr-2">
@@ -145,7 +164,7 @@ export default function InventoryWidget({ inventory }: InventoryWidgetProps) {
                                                 <span>{item.quality_score}/10</span>
                                             </div>
                                         ) : "N/A"}
-                                    </td>
+                                    </td> */}
                                 </tr>
                             ))}
                         </tbody>

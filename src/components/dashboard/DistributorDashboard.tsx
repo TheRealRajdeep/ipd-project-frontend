@@ -68,6 +68,16 @@ const dummyInventory = [
         estimated_arrival: "2025-05-10"
     }
 ];
+const filterUniqueShipments = (shipments: Shipment[]): Shipment[] => {
+    const seen = new Set();
+    return shipments.filter(shipment => {
+        if (seen.has(shipment.id)) {
+            return false;
+        }
+        seen.add(shipment.id);
+        return true;
+    });
+};
 
 export default function DistributorDashboard({ user }: DistributorDashboardProps) {
     const router = useRouter();
@@ -136,7 +146,8 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
                         }
                     );
                     console.log("Incoming shipments:", incomingResponse?.data);
-                    setIncomingShipments(incomingResponse?.data || []);
+                    const uniqueIncomingShipments = filterUniqueShipments(incomingResponse?.data || []);
+                    setIncomingShipments(uniqueIncomingShipments);
                 } catch (err) {
                     console.error("Error fetching incoming shipments:", err);
                     setIncomingShipments(dummyIncomingShipments);
@@ -152,8 +163,8 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
                             status: 'DELIVERED'
                         }
                     );
-                    console.log("Inventory:", inventoryResponse?.data);
-                    setInventory(inventoryResponse?.data || []);
+                    const uniqueInventory = filterUniqueShipments(inventoryResponse?.data || []);
+                    setInventory(uniqueInventory);
                 } catch (err) {
                     console.error("Error fetching inventory:", err);
                     setInventory(dummyInventory);
@@ -193,7 +204,7 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
                     <h1 className="text-3xl font-bold text-blue-800">
                         Welcome back, {user?.first_name || 'Distributor'}!
                     </h1>
-                    <p className="text-gray-600">Here's an overview of your distribution operations</p>
+                    <p className="text-gray-800">Here's an overview of your distribution operations</p>
 
                     {error && (
                         <div className="mt-2 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
@@ -233,7 +244,8 @@ export default function DistributorDashboard({ user }: DistributorDashboardProps
                             {/* All Shipments */}
                             <div className="col-span-1 lg:col-span-3">
                                 <ShipmentOverview
-                                    shipments={[...incomingShipments, ...inventory]}
+                                    // Use the filterUniqueShipments function here
+                                    shipments={filterUniqueShipments([...incomingShipments, ...inventory])}
                                     title="All Shipments"
                                     viewAllLink="/shipments"
                                 />

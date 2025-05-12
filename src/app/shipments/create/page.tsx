@@ -33,10 +33,10 @@ export default function CreateShipmentPage() {
 
     useEffect(() => {
         console.log("CreateShipmentPage mounted");
-        
+
         // Check if user is authenticated
         const currentUser = getCurrentUser();
-        console.log("Create Shipment - Current user:", currentUser?.username, 
+        console.log("Create Shipment - Current user:", currentUser?.username,
             "Role:", currentUser?.profile?.user_type);
 
         if (!currentUser) {
@@ -46,7 +46,7 @@ export default function CreateShipmentPage() {
         }
 
         // Allow both uppercase and lowercase farmer role types
-        if (currentUser.profile?.user_type !== 'FARMER' && 
+        if (currentUser.profile?.user_type !== 'FARMER' &&
             currentUser.profile?.user_type !== 'farmer') {
             console.log("User type:", currentUser.profile?.user_type);
             console.log("User is not a farmer, redirecting to dashboard");
@@ -59,9 +59,9 @@ export default function CreateShipmentPage() {
             ...prev,
             created_by_id: currentUser.id.toString()
         }));
-        
+
         setIsPageLoading(false);
-        
+
         return () => {
             console.log("CreateShipmentPage unmounted");
         };
@@ -103,10 +103,10 @@ export default function CreateShipmentPage() {
             submitFormData.append('origin', formData.origin);
             submitFormData.append('destination', formData.destination);
             submitFormData.append('quantity', formData.quantity);
-            submitFormData.append('status', 'PENDING'); 
+            submitFormData.append('status', 'PENDING');
             submitFormData.append('shipment_date', formData.shipment_date);
             submitFormData.append('estimated_arrival', formData.estimated_arrival);
-            
+
             if (image) {
                 submitFormData.append('image', image);
             }
@@ -136,7 +136,7 @@ export default function CreateShipmentPage() {
 
             console.log("Response received:", response?.data);
             setSuccess("Shipment created successfully! A delivery person has been assigned. Redirecting to dashboard...");
-            
+
             // Redirect to dashboard after brief delay
             setTimeout(() => {
                 router.push('/dashboard');
@@ -146,12 +146,12 @@ export default function CreateShipmentPage() {
             if (err.response?.data) {
                 const errorData = err.response.data;
                 let errorMessage = "Failed to create shipment";
-                
+
                 if (typeof errorData === 'object') {
                     const firstErrorKey = Object.keys(errorData)[0];
                     errorMessage = `${firstErrorKey}: ${errorData[firstErrorKey]}`;
                 }
-                
+
                 setError(errorMessage);
             } else {
                 setError("Failed to create shipment. Please try again.");
@@ -190,18 +190,18 @@ export default function CreateShipmentPage() {
                                 <AlertDescription>{error}</AlertDescription>
                             </Alert>
                         )}
-                        
+
                         {success && (
-                            <Alert className="mb-4 bg-green-50 text-green-800 border-green-200">
+                            <Alert className="mb-4 bg-success/15 text-success border-success/20">
                                 <AlertDescription>{success}</AlertDescription>
                             </Alert>
                         )}
-                        
+
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Origin</label>
-                                    <Input 
+                                    <Input
                                         type="text"
                                         name="origin"
                                         value={formData.origin}
@@ -210,10 +210,10 @@ export default function CreateShipmentPage() {
                                         required
                                     />
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Destination</label>
-                                    <Input 
+                                    <Input
                                         type="text"
                                         name="destination"
                                         value={formData.destination}
@@ -225,7 +225,7 @@ export default function CreateShipmentPage() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Quantity (kg)</label>
-                                    <Input 
+                                    <Input
                                         type="number"
                                         name="quantity"
                                         value={formData.quantity}
@@ -237,7 +237,7 @@ export default function CreateShipmentPage() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Shipment Date</label>
-                                    <Input 
+                                    <Input
                                         type="date"
                                         name="shipment_date"
                                         value={formData.shipment_date}
@@ -248,7 +248,7 @@ export default function CreateShipmentPage() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Estimated Arrival</label>
-                                    <Input 
+                                    <Input
                                         type="date"
                                         name="estimated_arrival"
                                         value={formData.estimated_arrival}
@@ -260,18 +260,18 @@ export default function CreateShipmentPage() {
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Upload Banana Image (for ripeness assessment)</label>
-                                <Input 
-                                    type="file" 
+                                <Input
+                                    type="file"
                                     onChange={handleImageChange}
                                     accept="image/*"
-                                    className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                                    className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                                     required
                                 />
                                 {imagePreview && (
                                     <div className="mt-2">
-                                        <img 
-                                            src={imagePreview} 
-                                            alt="Preview" 
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
                                             className="max-h-40 rounded-md border border-gray-200"
                                         />
                                     </div>
@@ -282,19 +282,20 @@ export default function CreateShipmentPage() {
                             </div>
 
                             <div className="flex justify-end space-x-4 pt-4">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => router.push('/dashboard')}
+                                    className="border-input hover:bg-accent hover:text-accent-foreground"
                                 >
                                     Cancel
                                 </Button>
-                                <Button 
-                                    type="submit" 
-                                    className="bg-green-600 hover:bg-green-700" 
+                                <Button
+                                    type="submit"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                                     disabled={isLoading}
                                 >
-                                    {isLoading ? "Creating..." : "Create Shipment"}
+                                    {isLoading ? "Creating Shipment..." : "Create Shipment"}
                                 </Button>
                             </div>
                         </form>

@@ -76,7 +76,7 @@ export default function QualityMetrics({ shipments }: QualityMetricsProps) {
 
                     <div className="mt-4">
                         <h3 className="text-md font-medium text-gray-700 mb-2">Quality Summary</h3>
-                        <ul className="space-y-1">
+                        <ul className="text-black space-y-1">
                             {Object.entries(ripenessData).map(([status, count]) => (
                                 <li key={status} className="flex justify-between">
                                     <span className="capitalize">{status}:</span>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { FaTruck, FaBoxOpen, FaClipboardCheck, FaBan } from 'react-icons/fa';
 
@@ -29,9 +29,21 @@ export default function ShipmentOverview({
 }: ShipmentOverviewProps) {
     const [displayCount, setDisplayCount] = useState(3);
 
-    const sortedShipments = [...shipments].sort((a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    const uniqueShipments = useMemo(() => {
+        const seen = new Set();
+        return shipments.filter(shipment => {
+            if (seen.has(shipment.id)) {
+                return false;
+            }
+            seen.add(shipment.id);
+            return true;
+        });
+    }, [shipments]);
+
+    const sortedShipments = useMemo(() =>
+        [...uniqueShipments].sort((a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ), [uniqueShipments]);
 
     const displayShipments = sortedShipments.slice(0, displayCount);
 
@@ -184,3 +196,4 @@ export default function ShipmentOverview({
         </div>
     );
 }
+
