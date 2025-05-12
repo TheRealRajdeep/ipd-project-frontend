@@ -1,18 +1,18 @@
-// Updated to include title and viewAllLink props
-
-"use client";
-
 import { useState } from 'react';
 import Link from 'next/link';
+import { FaTruck, FaBoxOpen, FaClipboardCheck, FaBan } from 'react-icons/fa';
 
 interface Shipment {
     id: number;
-    source_location?: string;
-    destination?: string;
+    origin: string;
+    destination: string;
     status: string;
+    quantity: number;
+    ripeness_status?: string;
+    shelf_life?: string;
     created_at: string;
-    predicted_ripeness?: string;
-    quality_score?: number;
+    shipment_date?: string;
+    estimated_arrival?: string;
 }
 
 interface ShipmentOverviewProps {
@@ -22,149 +22,119 @@ interface ShipmentOverviewProps {
 }
 
 export default function ShipmentOverview({
-    shipments,
-    title = "Shipments Overview",
+    shipments = [],
+    title = "Recent Shipments",
     viewAllLink = "/shipments"
 }: ShipmentOverviewProps) {
-    const [filter, setFilter] = useState('all');
+    const [displayCount, setDisplayCount] = useState(3);
 
-    // If shipments array is empty or undefined, use an empty array
-    const safeShipments = shipments || [];
+    const sortedShipments = [...shipments].sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
-    const filteredShipments = safeShipments.filter(shipment => {
-        if (filter === 'all') return true;
-        return shipment.status.toLowerCase() === filter.toLowerCase();
-    });
+    const displayShipments = sortedShipments.slice(0, displayCount);
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'in_transit': return 'bg-blue-100 text-blue-800';
-            case 'delivered': return 'bg-green-100 text-green-800';
-            case 'cancelled': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return <FaBoxOpen className="text-yellow-500" />;
+            case 'IN_TRANSIT':
+                return <FaTruck className="text-blue-500" />;
+            case 'DELIVERED':
+                return <FaClipboardCheck className="text-green-500" />;
+            case 'CANCELLED':
+                return <FaBan className="text-red-500" />;
+            default:
+                return <FaBoxOpen className="text-gray-500" />;
         }
     };
 
-    const getShipmentStats = () => {
-        const total = safeShipments.length;
-        const pending = safeShipments.filter(s => s.status.toLowerCase() === 'pending').length;
-        const inTransit = safeShipments.filter(s => s.status.toLowerCase() === 'in_transit').length;
-        const delivered = safeShipments.filter(s => s.status.toLowerCase() === 'delivered').length;
-
-        return { total, pending, inTransit, delivered };
+    const getStatusStyle = (status: string) => {
+        switch (status) {
+            case 'PENDING':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'IN_TRANSIT':
+                return 'bg-blue-100 text-blue-800';
+            case 'DELIVERED':
+                return 'bg-green-100 text-green-800';
+            case 'CANCELLED':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
     };
 
-    const stats = getShipmentStats();
-
     return (
-        <div className="bg-white rounded-lg shadow-md p-6 h-full hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-lg shadow-md p-5">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-green-800">{title}</h3>
-                <Link href={viewAllLink} className="text-green-600 hover:text-green-800 text-sm">
-                    View All
-                </Link>
+                <h2 className="text-xl font-semibold text-gray-700">{title}</h2>
+                {viewAllLink && (
+                    <Link href={viewAllLink} className="text-blue-600 hover:underline text-sm">
+                        View All
+                    </Link>
+                )}
             </div>
 
-            <div className="grid grid-cols-4 gap-2 mb-6">
-                <div className="bg-gray-50 rounded-md p-3 text-center">
-                    <div className="text-2xl font-bold">{stats.total}</div>
-                    <div className="text-xs text-gray-500">Total</div>
+            {shipments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                    <p>No shipments found.</p>
                 </div>
-                <div className="bg-yellow-50 rounded-md p-3 text-center">
-                    <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-                    <div className="text-xs text-gray-500">Pending</div>
-                </div>
-                <div className="bg-blue-50 rounded-md p-3 text-center">
-                    <div className="text-2xl font-bold text-blue-600">{stats.inTransit}</div>
-                    <div className="text-xs text-gray-500">In Transit</div>
-                </div>
-                <div className="bg-green-50 rounded-md p-3 text-center">
-                    <div className="text-2xl font-bold text-green-600">{stats.delivered}</div>
-                    <div className="text-xs text-gray-500">Delivered</div>
-                </div>
-            </div>
-
-            <div className="flex space-x-2 mb-4 flex-wrap gap-y-2">
-                <button
-                    onClick={() => setFilter('all')}
-                    className={`px-3 py-1 text-sm rounded-full ${filter === 'all' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}
-                >
-                    All
-                </button>
-                <button
-                    onClick={() => setFilter('pending')}
-                    className={`px-3 py-1 text-sm rounded-full ${filter === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100'}`}
-                >
-                    Pending
-                </button>
-                <button
-                    onClick={() => setFilter('in_transit')}
-                    className={`px-3 py-1 text-sm rounded-full ${filter === 'in_transit' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}`}
-                >
-                    In Transit
-                </button>
-                <button
-                    onClick={() => setFilter('delivered')}
-                    className={`px-3 py-1 text-sm rounded-full ${filter === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}
-                >
-                    Delivered
-                </button>
-            </div>
-
-            <div className="overflow-x-auto">
-                <table className="min-w-full">
-                    <thead>
-                        <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <th className="px-4 py-2">ID</th>
-                            <th className="px-4 py-2">From</th>
-                            <th className="px-4 py-2">To</th>
-                            <th className="px-4 py-2">Status</th>
-                            <th className="px-4 py-2">Quality</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                        {filteredShipments.length > 0 ? filteredShipments.slice(0, 5).map((shipment) => (
-                            <tr
-                                key={shipment.id}
-                                className="hover:bg-gray-50"
-                            >
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    <Link href={`/shipments/${shipment.id}`} className="text-green-600 hover:underline">
-                                        #{shipment.id}
-                                    </Link>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">{shipment.source_location || 'N/A'}</td>
-                                <td className="px-4 py-3 whitespace-nowrap">{shipment.destination || 'N/A'}</td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(shipment.status)}`}>
-                                        {shipment.status}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    {shipment.quality_score ? (
-                                        <div className="flex items-center">
-                                            <div className="w-16 bg-gray-200 rounded-full h-2.5 mr-2">
-                                                <div
-                                                    className="bg-green-600 h-2.5 rounded-full"
-                                                    style={{ width: `${shipment.quality_score * 10}%` }}
-                                                ></div>
-                                            </div>
-                                            <span>{shipment.quality_score}/10</span>
-                                        </div>
-                                    ) : "N/A"}
-                                </td>
-                            </tr>
-                        )) : (
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                        <thead className="bg-gray-50">
                             <tr>
-                                <td colSpan={5} className="px-4 py-3 text-center text-gray-500">
-                                    No shipments found.
-                                </td>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ripeness</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shelf Life</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {displayShipments.map(shipment => (
+                                <tr key={shipment.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <Link href={`/shipments/${shipment.id}`} className="text-blue-600 hover:underline">
+                                            #{shipment.id}
+                                        </Link>
+                                    </td>
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">{shipment.origin}</td>
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">{shipment.destination}</td>
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">{shipment.quantity}</td>
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(shipment.status)}`}>
+                                                {getStatusIcon(shipment.status)}
+                                                <span className="ml-1">{shipment.status}</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">
+                                        {shipment.ripeness_status && (
+                                            <span className="capitalize">{shipment.ripeness_status}</span>
+                                        )}
+                                    </td>
+                                    <td className="text-black px-4 py-3 whitespace-nowrap">{shipment.shelf_life || "N/A"}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {sortedShipments.length > displayCount && (
+                <div className="mt-4 text-center">
+                    <button
+                        onClick={() => setDisplayCount(prev => prev + 3)}
+                        className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    >
+                        Load More
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

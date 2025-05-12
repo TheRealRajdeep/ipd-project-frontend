@@ -1,12 +1,11 @@
-"use client";
-
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
 
 interface Shipment {
     id: number;
-    predicted_ripeness?: string;
-    quality_score?: number;
-    created_at: string;
+    ripeness_status?: string;
+    dominant_ripeness?: string;
+    // Other properties
 }
 
 interface QualityMetricsProps {
@@ -14,86 +13,79 @@ interface QualityMetricsProps {
 }
 
 export default function QualityMetrics({ shipments }: QualityMetricsProps) {
-    // Use dummy data for visualization
-    const safeShipments = shipments || [];
-    const [isClient, setIsClient] = useState(false);
+    // Count ripeness distribution
+    const ripenessData = shipments.reduce((acc: any, shipment) => {
+        const ripeness = shipment.dominant_ripeness || shipment.ripeness_status || 'Unknown';
+        if (!acc[ripeness]) {
+            acc[ripeness] = 0;
+        }
+        acc[ripeness] += 1;
+        return acc;
+    }, {});
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+    // Transform for chart
+    const chartData = Object.entries(ripenessData).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value
+    }));
 
-    // Process data for visualization
-    const processQualityData = () => {
-        // Count shipments by ripeness level
-        const ripenessCounts: { [key: string]: number } = {
-            'Unripe': 0,
-            'Semi-ripe': 0,
-            'Ripe': 0,
-            'Overripe': 0
-        };
-
-        safeShipments.forEach(shipment => {
-            if (shipment.predicted_ripeness) {
-                ripenessCounts[shipment.predicted_ripeness] =
-                    (ripenessCounts[shipment.predicted_ripeness] || 0) + 1;
-            }
-        });
-
-        return ripenessCounts;
+    // Colors for ripeness states
+    const COLORS = {
+        unripe: '#84cc16',     // Light green
+        freshripe: '#22c55e',  // Medium green
+        ripe: '#15803d',       // Dark green
+        overripe: '#b91c1c',   // Red
+        Unknown: '#9ca3af'     // Gray
     };
 
-    const qualityData = processQualityData();
-
-    // Calculate average quality score
-    const avgQuality = safeShipments.length > 0
-        ? safeShipments.reduce((sum, s) => sum + (s.quality_score || 0), 0) / safeShipments.length
-        : 0;
-
     return (
-        <div className="bg-white rounded-lg shadow-md p-6 h-full hover:shadow-lg transition-shadow">
-            <h3 className="text-xl font-semibold text-green-800 mb-4">Quality Metrics</h3>
+        <div className="bg-white rounded-lg shadow-md p-5 h-full">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Quality Metrics</h2>
 
-            <div className="mb-6">
-                <div className="text-sm text-gray-600 mb-1">Average Quality Score</div>
-                <div className="flex items-center">
-                    <div className="text-3xl font-bold mr-2">
-                        {avgQuality.toFixed(1)}
+            {shipments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                    <p>No quality data available.</p>
+                </div>
+            ) : (
+                <>
+                    <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={chartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    outerRadius={80}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                >
+                                    {chartData.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={COLORS[entry.name.toLowerCase() as keyof typeof COLORS] || '#9ca3af'}
+                                        />
+                                    ))}
+                                </Pie>
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
                     </div>
-                    <div className="text-sm text-gray-500">/ 10</div>
-                </div>
-            </div>
 
-            <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Ripeness Distribution</h4>
-                <div className="space-y-2">
-                    {Object.entries(qualityData).map(([label, count]) => (
-                        <div key={label} className="flex items-center">
-                            <div className="w-24 text-xs font-medium">{label}</div>
-                            <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-4 ${label === 'Unripe' ? 'bg-yellow-400' :
-                                            label === 'Semi-ripe' ? 'bg-green-300' :
-                                                label === 'Ripe' ? 'bg-green-500' : 'bg-red-400'
-                                        }`}
-                                    style={{
-                                        width: safeShipments.length ? `${(count / safeShipments.length) * 100}%` : '0%'
-                                    }}
-                                ></div>
-                            </div>
-                            <div className="w-8 text-xs text-right ml-2">{count}</div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Best Practices:</h4>
-                <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
-                    <li>Harvest when bananas are mature but still green</li>
-                    <li>Maintain storage temperature between 13-14°C</li>
-                    <li>Handle with care to minimize bruising</li>
-                </ul>
-            </div>
+                    <div className="mt-4">
+                        <h3 className="text-md font-medium text-gray-700 mb-2">Quality Summary</h3>
+                        <ul className="space-y-1">
+                            {Object.entries(ripenessData).map(([status, count]) => (
+                                <li key={status} className="flex justify-between">
+                                    <span className="capitalize">{status}:</span>
+                                    <span className="font-medium">{Number(count)} shipment{Number(count) !== 1 ? 's' : ''}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

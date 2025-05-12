@@ -138,27 +138,20 @@ export const logout = async (): Promise<void> => {
   }
 };
 
-export const getCurrentUser = (): UserData | null => {
-  if (typeof window === 'undefined') return null;
-  
-  // Check if we have user data stored
-  const userStr = localStorage.getItem('user');
-  if (!userStr) return null;
-  
-  // Check if we have the authentication cookie
-  const cookies = document.cookie.split(';');
-  const isAuthenticated = cookies.some(cookie => cookie.trim().startsWith('isAuthenticated=true'));
-  
-  if (!isAuthenticated) {
-    // If cookie is missing, user session likely expired
-    localStorage.removeItem('user');
+// Add this function if it doesn't exist:
+
+export const getCurrentUser = (): any | null => {
+  if (typeof window === 'undefined') {
     return null;
   }
   
   try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    
     return JSON.parse(userStr);
-  } catch (error) {
-    console.error("Error parsing user data:", error);
+  } catch (err) {
+    console.error('Error getting current user:', err);
     return null;
   }
 };
