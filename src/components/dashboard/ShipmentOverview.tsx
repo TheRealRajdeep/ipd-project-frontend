@@ -9,6 +9,7 @@ interface Shipment {
     status: string;
     quantity: number;
     ripeness_status?: string;
+    dominant_ripeness?: string;  // Make sure this is included
     shelf_life?: string;
     created_at: string;
     shipment_date?: string;
@@ -64,6 +65,42 @@ export default function ShipmentOverview({
         }
     };
 
+    // Add after getStatusStyle function
+
+    const getRipenessColor = (ripeness: string | undefined) => {
+        switch (ripeness?.toLowerCase()) {
+            case 'unripe':
+                return 'bg-green-100 text-green-800';
+            case 'freshripe':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'ripe':
+                return 'bg-amber-100 text-amber-800';
+            case 'overripe':
+                return 'bg-amber-100 text-amber-900';
+            case 'rotten':
+                return 'bg-gray-100 text-gray-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getRipenessBackgroundColor = (ripeness: string | undefined) => {
+        switch (ripeness?.toLowerCase()) {
+            case 'unripe':
+                return 'bg-green-600'; // Green for unripe bananas
+            case 'freshripe':
+                return 'bg-yellow-400'; // Yellow-green for fresh ripe bananas
+            case 'ripe':
+                return 'bg-yellow-600'; // Golden yellow for ripe bananas
+            case 'overripe':
+                return 'bg-amber-700'; // Brown for overripe bananas
+            case 'rotten':
+                return 'bg-gray-800'; // Almost black for rotten bananas
+            default:
+                return 'bg-gray-400'; // Default gray for unknown
+        }
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-md p-5">
             <div className="flex justify-between items-center mb-4">
@@ -113,8 +150,17 @@ export default function ShipmentOverview({
                                         </div>
                                     </td>
                                     <td className="text-black px-4 py-3 whitespace-nowrap">
-                                        {shipment.ripeness_status && (
-                                            <span className="capitalize">{shipment.ripeness_status}</span>
+                                        {(shipment.dominant_ripeness || shipment.ripeness_status) ? (
+                                            <div className="flex items-center">
+                                                <span
+                                                    className={`w-2.5 h-2.5 rounded-full mr-2 ${getRipenessBackgroundColor(shipment.dominant_ripeness || shipment.ripeness_status)}`}
+                                                ></span>
+                                                <span className={`capitalize ${getRipenessColor(shipment.dominant_ripeness || shipment.ripeness_status)}`}>
+                                                    {shipment.dominant_ripeness || shipment.ripeness_status}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">Unknown</span>
                                         )}
                                     </td>
                                     <td className="text-black px-4 py-3 whitespace-nowrap">{shipment.shelf_life || "N/A"}</td>

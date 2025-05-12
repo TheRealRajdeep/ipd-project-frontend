@@ -58,9 +58,10 @@ export default function RipenessTracker({ shipments }: RipenessTrackerProps) {
                             <div className="w-24 text-xs font-medium">{label}</div>
                             <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
                                 <div
-                                    className={`h-4 ${label === 'Unripe' ? 'bg-yellow-400' :
-                                            label === 'Semi-ripe' ? 'bg-green-300' :
-                                                label === 'Ripe' ? 'bg-green-500' : 'bg-red-400'
+                                    className={`h-4 ${label === 'Unripe' ? 'bg-green-600' :
+                                            label === 'Semi-ripe' ? 'bg-yellow-400' :
+                                                label === 'Ripe' ? 'bg-yellow-600' :
+                                                    label === 'Overripe' ? 'bg-amber-700' : 'bg-gray-800'
                                         }`}
                                     style={{
                                         width: safeShipments.length ? `${(count / safeShipments.length) * 100}%` : '0%'

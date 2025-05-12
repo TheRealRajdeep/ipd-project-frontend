@@ -31,11 +31,12 @@ export default function QualityMetrics({ shipments }: QualityMetricsProps) {
 
     // Colors for ripeness states
     const COLORS = {
-        unripe: '#84cc16',     // Light green
-        freshripe: '#22c55e',  // Medium green
-        ripe: '#15803d',       // Dark green
-        overripe: '#b91c1c',   // Red
-        Unknown: '#9ca3af'     // Gray
+        unripe: '#5d8c25',         // Green unripe banana
+        freshripe: '#f9e076',      // Yellow-green fresh ripe banana  
+        ripe: '#fed330',           // Golden yellow ripe banana
+        overripe: '#a15c07',       // Brown spotted overripe banana
+        rotten: '#3c3c3c',         // Dark gray/black for rotten
+        unknown: '#d4d4d8'         // Light gray for unknown
     };
 
     return (

@@ -140,21 +140,19 @@ export const logout = async (): Promise<void> => {
 
 // Add this function if it doesn't exist:
 
-export const getCurrentUser = (): any | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
+export function getCurrentUser() {
   try {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
-    
-    return JSON.parse(userStr);
-  } catch (err) {
-    console.error('Error getting current user:', err);
+    const userString = localStorage.getItem('user');
+    console.log("Auth - getCurrentUser called", userString ? "User found" : "No user found");
+    if (!userString) return null;
+    const user = JSON.parse(userString);
+    console.log("Auth - User role:", user.profile?.user_type);
+    return user;
+  } catch (error) {
+    console.error("Error getting current user:", error);
     return null;
   }
-};
+}
 
 export const setAuthHeader = (token: string | null) => {
   if (token) {
